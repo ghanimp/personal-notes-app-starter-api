@@ -1,80 +1,65 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useNotes } from '../context/NotesContext';
+import { useNotes } from '../contexts/NotesContext';
+import { useLocale } from '../contexts/LocaleContext';
 
-function AddNotePage() {
+export default function AddNotePage() {
   const { addNote } = useNotes();
+  const { t } = useLocale();
   const navigate = useNavigate();
-
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const onSubmitHandler = (event) => {
-    event.preventDefault();
-
-    if (title.trim() === '' || body.trim() === '') {
-      setError('Judul dan isi catatan tidak boleh kosong.');
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    if (!title.trim() || !body.trim()) {
+      setError('Judul dan isi tidak boleh kosong.');
       return;
     }
-
-    addNote({ title: title.trim(), body: body.trim() });
-    navigate('/');
+    setLoading(true);
+    try {
+      await addNote({ title, body });
+      navigate('/');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleCancel = () => navigate(-1);
-
   return (
-    <div className="add-new-page">
-      <button
-        type="button"
-        className="back-button"
-        onClick={() => navigate(-1)}
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M19 12H5M12 19l-7-7 7-7" />
-        </svg>
-        Kembali
-      </button>
-
-      <form onSubmit={onSubmitHandler} className="add-new-page__form">
+    <div className="page">
+      <button onClick={() => navigate(-1)} className="back-button">← {t('back')}</button>
+      <form onSubmit={onSubmit} className="add-new-page__form">
         <div className="add-new-page__input">
           <input
             type="text"
             className="add-new-page__input__title"
-            placeholder="Judul catatan..."
+            placeholder={t('titlePlaceholder')}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            disabled={loading}
           />
           <textarea
             className="add-new-page__input__body"
-            placeholder="Tulis isi catatan di sini..."
+            placeholder={t('bodyPlaceholder')}
             value={body}
             onChange={(e) => setBody(e.target.value)}
+            disabled={loading}
           />
         </div>
-
         {error && <p className="form-error">{error}</p>}
-
         <div className="add-new-page__actions">
-          <button
-            type="button"
-            className="btn btn--ghost"
-            onClick={handleCancel}
-          >
-            Batal
+          <button type="button" className="btn btn--ghost" onClick={() => navigate(-1)} disabled={loading}>
+            {t('cancel')}
           </button>
-          <button type="submit" className="btn btn--primary">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" />
-              <path d="M17 21v-8H7v8M7 3v5h8" />
-            </svg>
-            Simpan Catatan
+          <button type="submit" className="btn btn--primary" disabled={loading}>
+            {loading ? 'Loading...' : t('save')}
           </button>
         </div>
       </form>
     </div>
   );
 }
-
-export default AddNotePage;
